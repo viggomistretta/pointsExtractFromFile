@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "coordinates.h"
+#include "coords.h"
 
-int main() { 
+int csv_export(Trajectory traj) { 
     
     /* if TRAJECTORY is empty */
-    if (TRAJECTORY.nb_points == 0) {
+    if (traj.nb_points == 0) {
         printf("Aucune information extraite.\n");
         printf("Appuyez sur une touche pour fermer");
         /* waits for user input */
@@ -23,13 +23,13 @@ int main() {
         return 1;
     }
     /* (in csv) naming convention for the points */
-    fprintf(csv, "Nom_Point,,X,Y,Z,,Q1,Q2,Q3,Q4\n");
+    print_naming_convention(&traj);
 
     /* prints the coordinates in the csv */
-    if (TRAJECTORY)
-
-    for (int i = 0; i < TRAJECTORY.nb_points; i++) { 
-        print_coord(&TRAJECTORY.points[i].coord);
+    if (traj.nb_points > 0) {
+        for (int i = 0; i < traj.nb_points; i++) {
+            print_coord(&traj.points[i].coord);
+        }
     }
     fclose(csv);
 
