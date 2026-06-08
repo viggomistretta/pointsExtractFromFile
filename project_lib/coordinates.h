@@ -47,6 +47,11 @@ typedef struct {
     Point *points;      /* tableau alloué dynamiquement */
 } Trajectory;
 
+/* utils_io */
+char *strcasestr_portable(const char *hay, const char *needle);
+void print_naming_convention(const Coord *c);
+void print_coord(const Coord *c);
+
 /* get_file_type */
 int est_fichier_ABB(const char *nom);
 int est_fichier_FANUC(const char *nom);
