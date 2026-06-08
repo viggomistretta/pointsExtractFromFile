@@ -1,7 +1,13 @@
 #ifndef COORDINATES
 #define COORDINATES
 
-/* === Types de coordonnées === */
+/* Types de coordonnées */
+
+typedef enum {
+    ABB,
+    FANUC,
+    KUKA,
+} TrajType;
 
 typedef enum {
     COORD_CARTESIAN,
@@ -18,13 +24,13 @@ typedef struct {
 } QuaternionCoord;
 
 typedef struct {
-    float rx, ry, rz;   /* angles d'Euler ou autre convention */
+    float rx, ry, rz;
 } RotationCoord;
 
-/* === Coordonnée polymorphe === */
+/* Coordonnée polymorphe */
 
 typedef struct {
-    CoordType type;     /* le tag : indique ce qui est dans l'union */
+    CoordType type;
     union {
         CartesianCoord  cartesian;
         QuaternionCoord quaternion;
@@ -32,40 +38,34 @@ typedef struct {
     } data;
 } Coord;
 
-/* === Point === */
+/* Point */
 
 typedef struct {
-    char  name[16];     /* ex: "SRE9029" */
+    char  name[16];
     Coord coord;
 } Point;
 
-/* === Trajectoire === */
+/* Trajectoire */
 
 typedef struct {
+    TrajType traj_type; /* type de trajectoire (ABB, FANUC, etc.) */
     char  *provenance;  /* arborescence fichier */
     int    nb_points;   /* nombre de points dans la trajectoire */
     Point *points;      /* tableau alloué dynamiquement */
 } Trajectory;
 
+
 /* utils_io */
+
 char *strcasestr_portable(const char *hay, const char *needle);
-void print_naming_convention(const Coord *c);
-void print_coord(const Coord *c);
+void print_naming_convention(const Trajectory *t);
+void print_coord(const Point *p);
+
 
 /* get_file_type */
+
 int est_fichier_ABB(const char *nom);
 int est_fichier_FANUC(const char *nom);
-
-/* type_ABB */
-char *construire_chemin_traject(const char *abbDir);
-int extraire_informations_fichier(const char *traject, Information infos[]);
-int searchABB();
-
-/* type_FANUC */
-int extraire_informations_fichier(const char *nom_fichier, Information infos[]);
-int searchFANUC();
-
-
 
 #endif
 
