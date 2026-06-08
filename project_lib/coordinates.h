@@ -42,7 +42,7 @@ typedef struct {
 /* === Trajectoire === */
 
 typedef struct {
-    int    provenance;  /* arborescence fichier */
+    char  *provenance;  /* arborescence fichier */
     int    nb_points;   /* nombre de points dans la trajectoire */
     Point *points;      /* tableau alloué dynamiquement */
 } Trajectory;
