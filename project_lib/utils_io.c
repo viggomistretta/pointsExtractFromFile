@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <string.h>
+#include <strings.h>
 #include "coords.h"
 
 /* Portable version of strcasestr (searches hay for case-insensitive needle) because it doesn't exist in windows */

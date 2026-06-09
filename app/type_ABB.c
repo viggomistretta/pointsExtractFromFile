@@ -69,7 +69,6 @@ char *construire_chemin_traject(const char *abbDir) {
     }
 
     fclose(f);
-    Trajectory.arborescence = result;
     return result;
 }
 

@@ -32,7 +32,7 @@ int csv_export(Trajectory traj) {
     /* prints the coordinates in the csv */
     if (traj.nb_points > 0) {
         for (int i = 0; i < traj.nb_points; i++) {
-            print_coord(&traj.points[i].coord);
+            print_coord(&traj.points[i]);
         }
     }
     fclose(csv);
