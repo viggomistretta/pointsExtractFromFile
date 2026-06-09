@@ -48,10 +48,11 @@ typedef struct {
 /* Trajectoire */
 
 typedef struct {
-    TrajType traj_type; /* type de trajectoire (ABB, FANUC, etc.) */
-    char  *provenance;  /* arborescence fichier */
-    int    nb_points;   /* nombre de points dans la trajectoire */
-    Point *points;      /* tableau alloué dynamiquement */
+    TrajType traj_type;     /* type de trajectoire (ABB, FANUC, etc.) */
+    char    *provenance;    /* nom du fichier source de la trajectoire */
+    char    *arborescence;  /* arborescence fichier */
+    int      nb_points;     /* nombre de points dans la trajectoire */
+    Point   *points;        /* tableau alloué dynamiquement */
 } Trajectory;
 
 
@@ -64,8 +65,8 @@ void print_coord(const Point *p);
 
 /* get_file_type */
 
-int est_fichier_ABB(const char *nom);
-int est_fichier_FANUC(const char *nom);
+int fichier_ABB(const char *nom);
+int fichier_FANUC(const char *nom);
 
 #endif
 

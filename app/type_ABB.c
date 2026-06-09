@@ -69,6 +69,7 @@ char *construire_chemin_traject(const char *abbDir) {
     }
 
     fclose(f);
+    Trajectory.arborescence = result;
     return result;
 }
 
@@ -157,4 +158,43 @@ int searchABB() {
 
     Information infos[MAX_INFOS];
     int nb_infos = extraire_informations_fichier(construire_chemin_traject(abbDir), infos);
+}
+
+/* Main wrapper function that processes ABB directory and returns Trajectory */
+Trajectory type_ABB(const char *abbDir) {
+    Trajectory traj;
+    memset(&traj, 0, sizeof(traj));
+
+    /* Check if directory matches ABB naming convention */
+    if (fichier_ABB(abbDir) != ABB) {
+        printf("Erreur: %s ne correspond pas au format ABB\n", abbDir);
+        return traj;
+    }
+
+    /* Set trajectory metadata */
+    traj.traj_type = ABB;
+
+    /* Get the trajectory file path */
+    char *traject_path = construire_chemin_traject(abbDir);
+    if (!traject_path) {
+        printf("Impossible de construire le chemin de trajectoire pour %s\n", abbDir);
+        return traj;
+    }
+
+    /* Store the main ABB directory name as provenance */
+    const char *sep = strstr(abbDir, " - ");
+    size_t provenance_len = sep ? (size_t)(sep - abbDir) : strlen(abbDir);
+    traj.provenance = malloc(provenance_len + 1);
+    if (traj.provenance) {
+        strncpy(traj.provenance, abbDir, provenance_len);
+        traj.provenance[provenance_len] = '\0';
+    }
+
+    /* Store the full constructed trajectory path in arborescence */
+    traj.arborescence = traject_path;
+
+    /* Extract points from trajectory file */
+    traj.nb_points = extraire_informations_fichier(traject_path);
+
+    return traj;
 }

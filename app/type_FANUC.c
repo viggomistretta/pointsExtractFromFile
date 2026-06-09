@@ -111,3 +111,38 @@ int searchFANUC() {
     Information infos[MAX_INFOS];
     int nb_infos = extraire_informations_fichier(fichier_traj, infos);
 }
+
+/* Main wrapper function that processes FANUC file and returns Trajectory */
+Trajectory type_FANUC(const char *fanucFile) {
+    Trajectory traj;
+    memset(&traj, 0, sizeof(traj));
+
+    /* Check if file matches FANUC naming convention */
+    if (fichier_FANUC(fanucFile) != FANUC) {
+        printf("Erreur: %s ne correspond pas au format FANUC\n", fanucFile);
+        return traj;
+    }
+
+    /* Set trajectory metadata */
+    traj.traj_type = FANUC;
+
+    /* Store the main file name without extension as provenance */
+    const char *dot = strrchr(fanucFile, '.');
+    size_t provenance_len = dot ? (size_t)(dot - fanucFile) : strlen(fanucFile);
+    traj.provenance = malloc(provenance_len + 1);
+    if (traj.provenance) {
+        strncpy(traj.provenance, fanucFile, provenance_len);
+        traj.provenance[provenance_len] = '\0';
+    }
+
+    /* Store the file path in arborescence */
+    traj.arborescence = malloc(strlen(fanucFile) + 1);
+    if (traj.arborescence) {
+        strcpy(traj.arborescence, fanucFile);
+    }
+
+    /* Extract points from trajectory file */
+    traj.nb_points = extraire_informations_fichier(fanucFile);
+
+    return traj;
+}
