@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
-#include "coords.h"
+#include "coordinates.h"
 
 /* Portable version of strcasestr (searches hay for case-insensitive needle) because it doesn't exist in windows */
 char *strcasestr_portable(const char *hay, const char *needle) {
@@ -15,10 +15,10 @@ char *strcasestr_portable(const char *hay, const char *needle) {
 void print_naming_convention(const Trajectory *t) {
     switch (t->traj_type) {
         case ABB:
-            printf("Nom_Point,,X,Y,Z\n");
+            printf("Nom_Point,,Q1,Q2,Q3,Q4\n");
             break;
         case FANUC:
-            printf("Nom_Point,,Q1,Q2,Q3,Q4\n");
+            printf("Nom_Point,,X,Y,Z\n");
             break;
         case KUKA:
             printf("Nom_Point,,RX,RY,RZ\n");

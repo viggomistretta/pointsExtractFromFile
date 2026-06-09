@@ -7,109 +7,118 @@
 
 
 /* extracts the points in the file */
-int extraire_informations_fichier(const char *nom_fichier) {
-    
-    /* open file, returns error if file is not found */
+int extraire_informations_fichier_FANUC(Trajectory *traj, const char *nom_fichier) {
     FILE *f = fopen(nom_fichier, "r");
     if (!f) {
-        perror("Erreur d'ouverture du fichier");
+        perror("Erreur d'ouverture du fichier FANUC");
         return 0;
     }
 
-    char ligne[LINE_SIZE];
-    Trajectory traj;
-    strncpy(traj.provenance, nom_fichier, sizeof(traj.provenance));
+    size_t capacity = 16;
+    traj->points = malloc(capacity * sizeof(*traj->points));
+    if (!traj->points) {
+        fclose(f);
+        return 0;
+    }
 
-    /* checks for the start of a line with a point in the file */
+    int count = 0;
+    char ligne[LINE_SIZE];
+    int dans_point = 0;
+    Point point;
+
     while (fgets(ligne, sizeof(ligne), f)) {
         if (strstr(ligne, "P[")) {
-            memset(&traj_rota, 0, sizeof(info));
+            memset(&point, 0, sizeof(point));
             dans_point = 1;
-            /* extract the name of the point out and saves in traj_rota.point.nom_point */
+
             char *debut_nom = strchr(ligne, '"');
             if (debut_nom) {
                 debut_nom++;
                 char *fin_nom = strchr(debut_nom, '"');
                 if (fin_nom) {
-                    Point p;
                     size_t len = fin_nom - debut_nom;
-                    traj.p.nom_point[len] = '\0';
+                    if (len >= sizeof(point.name))
+                        len = sizeof(point.name) - 1;
+                    strncpy(point.name, debut_nom, len);
+                    point.name[len] = '\0';
                 }
-            } 
-            /* if name is unknown assigns "Inconnu" as name*/
-            else {
+            } else {
                 char *num_debut = strchr(ligne, '[');
                 char *num_fin = strchr(ligne, ']');
                 if (num_debut && num_fin && num_fin > num_debut + 1) {
-                    Point p;
                     size_t len = num_fin - num_debut - 1;
-                    strncpy(traj.p.nom_point, num_debut + 1, len);
-                    traj.p.nom_point[len] = '\0';
+                    if (len >= sizeof(point.name))
+                        len = sizeof(point.name) - 1;
+                    strncpy(point.name, num_debut + 1, len);
+                    point.name[len] = '\0';
                 } else {
-                    strcpy(traj.p.nom_point, "Inconnu");
+                    strcpy(point.name, "Inconnu");
                 }
             }
+            continue;
         }
 
-    /* if there is a point in the current line, registers the coordinates corresponding to said point */
+        if (dans_point && strstr(ligne, "RX =")) {
+            double rx, ry, rz;
+            if (sscanf(ligne, "%*[^R]RX = %lf mm%*[^R]RY = %lf mm%*[^R]RZ = %lf mm",
+                       &rx, &ry, &rz) == 3) {
+                point.coord.type = COORD_ROTATION;
+                point.coord.data.rotation.rx = rx;
+                point.coord.data.rotation.ry = ry;
+                point.coord.data.rotation.rz = rz;
 
-        /* scans lines to find the points of type RX RY et RZ */
-        if (dans_point && strstr(ligne, "RX =")) { 
-            if (sscanf(ligne, "%*[^R]RX = %lf mm%*[^R]RY = %lf mm%*[^R]RZ = %lf mm", 
-                    &traj.p.coord.data.rotation.x, 
-                    &traj.p.coord.data.rotation.y, 
-                    &traj.p.coord.data.rotation.z) == 3) {
-                    traj.p.coord.type             = COORD_ROTATION;
+                if (count >= (int)capacity) {
+                    size_t next_capacity = capacity * 2;
+                    Point *next = realloc(traj->points, next_capacity * sizeof(*next));
+                    if (!next) {
+                        free(traj->points);
+                        traj->points = NULL;
+                        fclose(f);
+                        return 0;
+                    }
+                    traj->points = next;
+                    capacity = next_capacity;
+                }
+                traj->points[count++] = point;
+                dans_point = 0;
+            }
+        } else if (dans_point && strstr(ligne, "X =")) {
+            double x, y, z;
+            if (sscanf(ligne, "%*[^X]X = %lf mm%*[^Y]Y = %lf mm%*[^Z]Z = %lf mm",
+                       &x, &y, &z) == 3) {
+                point.coord.type = COORD_CARTESIAN;
+                point.coord.data.cartesian.x = x;
+                point.coord.data.cartesian.y = y;
+                point.coord.data.cartesian.z = z;
+
+                if (count >= (int)capacity) {
+                    size_t next_capacity = capacity * 2;
+                    Point *next = realloc(traj->points, next_capacity * sizeof(*next));
+                    if (!next) {
+                        free(traj->points);
+                        traj->points = NULL;
+                        fclose(f);
+                        return 0;
+                    }
+                    traj->points = next;
+                    capacity = next_capacity;
+                }
+                traj->points[count++] = point;
+                dans_point = 0;
             }
         }
-        /* scan the lines to find the points of type X Y et Z */
-        else if (dans_point && strstr(ligne, "X =")) { 
-            if (sscanf(ligne, "%*[^R]X = %lf mm%*[^R]Y = %lf mm%*[^R]Z = %lf mm", 
-                    &traj.p.coord.data.cartesian.x, 
-                    &traj.p.coord.data.cartesian.y, 
-                    &traj.p.coord.data.cartesian.z) == 3) {
-                traj.p.coord.type = COORD_CARTESIAN;
-            }
-        }
-
     }
 
     fclose(f);
+    traj->nb_points = count;
     return count;
 }
 
 
 /* seaches to find trajectory traject files from which to extract points info */
-int searchFANUC() {
-    struct dirent *entry;
-    DIR *dir = opendir(".");
-    if (!dir) {
-        perror("Erreur d'ouverture du repertoire courant");
-        return 1;
-    }
-
-    /* takes the first one found */ /* need to change it to loop until all are processed */
-    char fichier_traj[256] = "";
-    while ((entry = readdir(dir)) != NULL) {
-        if (est_fichier_traj(entry->d_name)) {
-            strcpy(fichier_traj, entry->d_name);
-            break; 
-        }
-    }
-    closedir(dir);
-
-    /* ends search for traj*ls file if none are found in directory */
-    if (fichier_traj[0] == '\0') { 
-        printf("Aucun fichier 'traj*.ls' trouve dans le repertoire.\n");
-        printf("Appuyez sur entree pour fermer");
-        getchar();
-        return 0;
-    }
-
-    printf("Fichier trouve : %s\n\n", fichier_traj);
-
-    Information infos[MAX_INFOS];
-    int nb_infos = extraire_informations_fichier(fichier_traj, infos);
+int searchFANUC(void) {
+    (void)printf;
+    return 0;
 }
 
 /* Main wrapper function that processes FANUC file and returns Trajectory */
@@ -142,7 +151,7 @@ Trajectory type_FANUC(const char *fanucFile) {
     }
 
     /* Extract points from trajectory file */
-    traj.nb_points = extraire_informations_fichier(fanucFile);
+    traj.nb_points = extraire_informations_fichier_FANUC(&traj, fanucFile);
 
     return traj;
 }

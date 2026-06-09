@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "coords.h"
+#include "coordinates.h"
 
 int csv_export(Trajectory traj) { 
     

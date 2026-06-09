@@ -21,7 +21,7 @@
  * or the file cannot be opened, NULL is returned.
  */
 char *construire_chemin_traject(const char *abbDir) {
-    if (!est_fichier_ABB(abbDir)){
+    if (!abbDir || fichier_ABB(abbDir) != ABB) {
         printf("Impossible de trouver un fichier trajectoire dans %s\n", abbDir);
         getchar();
         return NULL;
@@ -73,90 +73,85 @@ char *construire_chemin_traject(const char *abbDir) {
 }
 
 /* extracts the points in the file */
-int extraire_informations_fichier(const char *traject) {
-    
-    /* open file, returns error if file is not found/not authorized */
+int extraire_informations_fichier_ABB(Trajectory *traj, const char *traject) {
     FILE *f = fopen(traject, "r");
     if (!f) {
-        perror("Erreur d'ouverture du fichier");
-        return 1;
+        perror("Erreur d'ouverture du fichier ABB");
+        return 0;
     }
 
-    char ligne[LINE_SIZE];
-    int count = 0;
-    Information info;
-    int dans_point = 0;
+    size_t capacity = 16;
+    traj->points = malloc(capacity * sizeof(*traj->points));
+    if (!traj->points) {
+        fclose(f);
+        return 0;
+    }
 
-    /* checks for the start of a line with a point in the file */
+    int count = 0;
+    char ligne[LINE_SIZE];
+    int dans_point = 0;
+    Point point;
+
     while (fgets(ligne, sizeof(ligne), f)) {
         if (strcasestr_portable(ligne, "CONST robtarget sre")) {
-            memset(&info, 0, sizeof(info));
+            memset(&point, 0, sizeof(point));
             dans_point = 1;
 
-            /* extract the name of the point out and saves in info.nom_point */
             char *debut_nom = strchr(ligne + 5, 'S');
             if (debut_nom) {
                 debut_nom++;
                 char *fin_nom = strchr(debut_nom, ':');
                 if (fin_nom) {
                     size_t len = fin_nom - debut_nom;
-                    strncpy(info.nom_point, debut_nom, len);
-                    info.nom_point[len] = '\0';
+                    if (len >= sizeof(point.name))
+                        len = sizeof(point.name) - 1;
+                    strncpy(point.name, debut_nom, len);
+                    point.name[len] = '\0';
                 }
+            } else {
+                strcpy(point.name, "Inconnu");
             }
+            continue;
         }
-        
-        /* if there is a point in the current line, registers the coordinates corresponding to said point */
+
         if (dans_point && strstr(ligne, "[[")) {
+            double x, y, z;
+            double q1, q2, q3, q4;
             if (sscanf(ligne, "%*[^[] [[%lf,%lf,%lf %*[^[] [%lf,%lf,%lf,%lf]",
-                &info.x, 
-                &info.y, 
-                &info.z, 
-                &info.Q1, 
-                &info.Q2, 
-                &info.Q3, 
-                &info.Q4) == 7) {
-                strcpy(info.type, "X_Y_Z-Q1_Q2_Q3_Q4");
-                infos[count++] = info;
-                dans_point = 0;
+                       &x, &y, &z, &q1, &q2, &q3, &q4) == 7) {
+                point.coord.type = COORD_QUATERNION;
+                point.coord.data.quaternion.Q1 = q1;
+                point.coord.data.quaternion.Q2 = q2;
+                point.coord.data.quaternion.Q3 = q3;
+                point.coord.data.quaternion.Q4 = q4;
+
+                if (count >= (int)capacity) {
+                    size_t next_capacity = capacity * 2;
+                    Point *next = realloc(traj->points, next_capacity * sizeof(*next));
+                    if (!next) {
+                        free(traj->points);
+                        traj->points = NULL;
+                        fclose(f);
+                        return 0;
+                    }
+                    traj->points = next;
+                    capacity = next_capacity;
+                }
+                traj->points[count++] = point;
             }
+            dans_point = 0;
         }
     }
+
     fclose(f);
+    traj->nb_points = count;
     return count;
 }
 
 /* seaches throughout the ABB directory to find trajectory files from which to extract points info */
-int searchABB() {
-    struct dirent *entry;
-    DIR *dir = opendir(".");
-    if (!dir) {
-        perror("Erreur d'ouverture du repertoire courant");
-        return 1;
-    }
-
-    /* takes the first one found */
-    char abbDir[256] = "";
-    while ((entry = readdir(dir)) != NULL) {
-        if (est_fichier_ABB(entry->d_name)) {
-            strcpy(abbDir, entry->d_name);
-            break; 
-        }
-    }
-    closedir(dir);
-
-    /* ends search for ABB file if none are found in directory */
-    if (abbDir[0] == '\0') { 
-        printf("Aucun fichier ABB trouve dans le repertoire.\n");
-        printf("Appuyez sur entree pour fermer");
-        getchar();
-        return 0;
-    }
-
-    printf("Fichier trouve : %s\n\n", abbDir);
-
-    Information infos[MAX_INFOS];
-    int nb_infos = extraire_informations_fichier(construire_chemin_traject(abbDir), infos);
+int searchABB(void) {
+    (void)printf;
+    return 0;
 }
 
 /* Main wrapper function that processes ABB directory and returns Trajectory */
@@ -193,7 +188,7 @@ Trajectory type_ABB(const char *abbDir) {
     traj.arborescence = traject_path;
 
     /* Extract points from trajectory file */
-    traj.nb_points = extraire_informations_fichier(traject_path);
+    traj.nb_points = extraire_informations_fichier_ABB(&traj, traject_path);
 
     return traj;
 }

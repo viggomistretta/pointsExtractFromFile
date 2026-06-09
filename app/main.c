@@ -9,7 +9,7 @@
 Trajectory type_ABB(const char *abbDir);
 Trajectory type_FANUC(const char *fanucFile);
 
-int main(int argc, char const *argv[]) {
+int main(void) {
     struct dirent *entry;
     DIR *dir = opendir(".");
     

@@ -1,6 +1,8 @@
 #ifndef COORDINATES
 #define COORDINATES
 
+#define LINE_SIZE 1024
+
 /* Types de coordonnées */
 
 typedef enum {
@@ -55,6 +57,7 @@ typedef struct {
     Point   *points;        /* tableau alloué dynamiquement */
 } Trajectory;
 
+int csv_export(Trajectory traj);
 
 /* utils_io */
 
@@ -65,8 +68,8 @@ void print_coord(const Point *p);
 
 /* get_file_type */
 
-int fichier_ABB(const char *nom);
-int fichier_FANUC(const char *nom);
+TrajType fichier_ABB(const char *nom);
+TrajType fichier_FANUC(const char *nom);
 
 #endif
 
